@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Online Quiz</title>
+<style>
+*{box-sizing:border-box;}
+body{margin:0; min-height:100vh; font-family:'Segoe UI', sans-serif; background: linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center;}
+.container{background:#ffffff; width:90%; max-width:500px; padding:25px; border-radius:15px; box-shadow:0 15px 30px rgba(0,0,0,0.25); animation: fadeIn 0.8s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);}}
+h2,h3{text-align:center; color:#333;}
+input[type=text], input[type=password]{width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; font-size:16px;}
+button{width:100%; padding:12px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-top:15px;}
+button:hover{opacity:0.9;}
+.option{background:#f4f6f8; padding:10px; border-radius:8px; margin:10px 0; cursor:pointer;}
+.option.correct{background-color:#d4f7d4; border-left:6px solid #28a745; color:#0b3b10;}
+.option.wrong{background-color:#f8d7da; border-left:6px solid #dc3545; color:#4a0b0b;}
+.option{transition:background-color 180ms ease, border-left-color 180ms ease;}
+.option:hover{background-color:#e0e7ff;}
+.timer{text-align:right; font-weight:bold; color:#e63946;}
+#quiz,#result{display:none;}
+#result p{font-size:16px; text-align:left;}
+</style>
+</head>
+<body>
+
+<audio id="correctSound" src="right.mp3.mpeg" preload="auto" type="audio/mpeg"></audio>
+<audio id="wrongSound" src="wrong.mp3.mpeg" preload="auto" type="audio/mpeg"></audio>
+
+<!-- Login -->
+<div class="container" id="login">
+    <h2>Advanced Online Quiz</h2>
+    <input type="text" id="username" placeholder="Enter your name">
+    <br><br>
+    <input type="email" id="email" placeholder="Enter your email">
+    <br><br>
+    <input type="password" id="key" placeholder="Enter key">
+    <button type="button" id="genKeyBtn" onclick="generateKey()" style="margin-top:8px;">Generate Key</button>
+    <br>
+    <small id="generatedKeyDisplay" style="display:block; margin-top:8px; color:#333;"></small>
+    <br><br>
+    <label for="level">Select level:</label>
+    <select id="level">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+    </select>
+    <br><br>
+    <button onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<!-- Quiz -->
+<div class="container" id="quiz">
+    <div class="timer">Time: <span id="time">120</span>s</div>
+    <h3 id="question"></h3>
+    <div class="option">
+        <input type="radio" name="option" id="opt1">
+        <label id="label1"></label>
+    </div>
+    <div class="option">
+        <input type="radio" name="option" id="opt2">
+        <label id="label2"></label>
+    </div>
+    <div class="option">
+        <input type="radio" name="option" id="opt3">
+        <label id="label3"></label>
+    </div>
+    <div class="option">
+        <input type="radio" name="option" id="opt4">
+        <label id="label4"></label>
+    </div>
+    <br>
+    <button id="nextBtn" onclick="nextQuestion()">Next</button>
+</div>
+
+<!-- Result -->
+<div class="container" id="result">
+    <h2>Quiz Result</h2>
+    <p id="score"></p>
+</div>
+
+<script>
+const questionsEasy = [
+    { q: "Fastest land animal?", options:["Cheetah","Lion","Tiger","Leopard"], answer:0 },
+    { q: "Currency of South Korea?", options:["Won","Yen","Dollar","Peso"], answer:0 },
+    { q: "Light year is a measure of?", options:["Time","Distance","Speed","Energy"], answer:1 },
+    { q: "Who painted the Mona Lisa?", options:["Van Gogh","Da Vinci","Picasso","Michelangelo"], answer:1 },
+    { q: "Which gas is most abundant in Earth's atmosphere?", options:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], answer:1 },
+    { q: "What color do you get by mixing red and blue?", options:["Green","Purple","Orange","Brown"], answer:1 },
+    { q: "How many continents are there on Earth?", options:["5","6","7","8"], answer:2 },
+    { q: "What is H2O commonly known as?", options:["Salt","Water","Hydrogen","Oxygen"], answer:1 },
+    { q: "Largest ocean on Earth?", options:["Atlantic","Indian","Arctic","Pacific"], answer:3 },
+    { q: "What is 2 + 2?", options:["3","4","5","6"], answer:1 }
+    ,{ q: "What is the capital of India?", options:["Mumbai","New Delhi","Bangalore","Kolkata"], answer:1 }
+    ,{ q: "Which planet is known as the Red Planet?", options:["Earth","Venus","Mars","Jupiter"], answer:2 }
+    ,{ q: "How many legs does a spider have?", options:["6","8","10","12"], answer:1 }
+    ,{ q: "What is the boiling point of water (°C)?", options:["0","50","100","150"], answer:2 }
+    ,{ q: "Which fruit is yellow and curved?", options:["Apple","Banana","Cherry","Grape"], answer:1 }
+    ,{ q: "Which animal barks?", options:["Cat","Dog","Cow","Sheep"], answer:1 }
+    ,{ q: "What is 10 * 5?", options:["50","100","25","40"], answer:0 }
+    ,{ q: "Which shape has three sides?", options:["Square","Circle","Triangle","Rectangle"], answer:2 }
+    ,{ q: "What gas do plants produce?", options:["Oxygen","Carbon Dioxide","Nitrogen","Helium"], answer:0 }
+    ,{ q: "Which instrument has six strings?", options:["Piano","Violin","Guitar","Drum"], answer:2 }
+    ,{ q: "What color is the sky on a clear day?", options:["Green","Blue","Red","Yellow"], answer:1 }
+    ,{ q: "How many hours are there in a day?", options:["12","24","48","36"], answer:1 }
+    ,{ q: "Which animal says 'meow'?", options:["Dog","Cow","Cat","Sheep"], answer:2 }
+    ,{ q: "What do bees produce?", options:["Milk","Honey","Silk","Ink"], answer:1 }
+    ,{ q: "Which gas do we primarily breathe?", options:["Carbon Dioxide","Oxygen","Helium","Nitrogen"], answer:3 }
+    ,{ q: "What is 5 - 2?", options:["2","3","4","1"], answer:1 }
+    ,{ q: "Which shape has four equal sides?", options:["Rectangle","Circle","Square","Triangle"], answer:2 }
+    ,{ q: "Which season is usually the coldest?", options:["Summer","Autumn","Spring","Winter"], answer:3 }
+    ,{ q: "Which device is used to make phone calls?", options:["Television","Phone","Radio","Microwave"], answer:1 }
+    ,{ q: "What drink is made from roasted cocoa beans?", options:["Tea","Coffee","Hot Chocolate","Lemonade"], answer:2 }
+    ,{ q: "How many colors are there in a rainbow?", options:["5","6","7","8"], answer:2 }
+    ,{ q: "Which animal is known for its trunk?", options:["Lion","Elephant","Giraffe","Tiger"], answer:1 }
+    ,{ q: "Which day is between Tuesday and Thursday?", options:["Monday","Wednesday","Friday","Sunday"], answer:1 }
+    ,{ q: "What is 4 x 4?", options:["12","16","20","8"], answer:1 }
+    ,{ q: "Which vegetable is orange and often used in salads?", options:["Carrot","Broccoli","Spinach","Potato"], answer:0 }
+    ,{ q: "Which sense lets you hear?", options:["Sight","Taste","Hearing","Smell"], answer:2 }
+    ,{ q: "What do you call frozen water?", options:["Steam","Ice","Vapor","Fog"], answer:1 }
+    ,{ q: "Which animal has a mane?", options:["Lion","Elephant","Horse","Rabbit"], answer:0 }
+    ,{ q: "Which month comes after June?", options:["May","July","August","September"], answer:1 }
+];
+
+const questionsMedium = [
+    { q: "Smallest prime number greater than 50?", options:["51","53","57","59"], answer:1 },
+    { q: "Who wrote the novel '1984'?", options:["Aldous Huxley","George Orwell","J.K. Rowling","Mark Twain"], answer:1 },
+    { q: "Which element has the highest melting point?", options:["Iron","Tungsten","Gold","Platinum"], answer:1 },
+    { q: "Capital of France?", options:["Berlin","Madrid","Paris","Rome"], answer:2 },
+    { q: "Chemical symbol for Gold?", options:["Gd","Ag","Au","Pt"], answer:2 },
+    { q: "Largest planet in our solar system?", options:["Earth","Saturn","Jupiter","Mars"], answer:2 },
+    { q: "Which language is primarily spoken in Brazil?", options:["Spanish","Portuguese","English","French"], answer:1 },
+    { q: "In which year did World War II end?", options:["1942","1945","1948","1950"], answer:1 },
+    { q: "Boiling point of water at sea level (°C)?", options:["90","95","100","105"], answer:2 },
+    { q: "Which organ pumps blood around the body?", options:["Liver","Lungs","Kidney","Heart"], answer:3 }
+    
+];
+
+// additional medium questions
+questionsMedium.push(
+    { q: "Who discovered penicillin?", options:["Marie Curie","Alexander Fleming","Louis Pasteur","Gregor Mendel"], answer:1 },
+    { q: "What is the square root of 144?", options:["10","11","12","14"], answer:2 },
+    { q: "Which country hosted the 2016 Summer Olympics?", options:["China","UK","Brazil","Russia"], answer:2 },
+    { q: "What is the chemical formula for table salt?", options:["H2O","NaCl","CO2","C6H12O6"], answer:1 },
+    { q: "Which organ removes waste from blood?", options:["Heart","Lungs","Kidney","Liver"], answer:2 },
+    { q: "Which continent is Egypt in?", options:["Asia","Africa","Europe","South America"], answer:1 },
+    { q: "What is the value of π (approx)?", options:["2.14","3.14","4.14","3.41"], answer:1 },
+    { q: "Which language has the most native speakers?", options:["English","Spanish","Mandarin","Hindi"], answer:2 },
+    { q: "What is the process plants use to make food?", options:["Respiration","Photosynthesis","Digestion","Fermentation"], answer:1 },
+    { q: "Which element is a noble gas?", options:["Oxygen","Nitrogen","Helium","Carbon"], answer:2 }
+);
+
+// another 10 medium questions
+questionsMedium.push(
+    { q: "What is the capital of Australia?", options:["Sydney","Melbourne","Canberra","Perth"], answer:2 },
+    { q: "Who proposed the theory of evolution by natural selection?", options:["Gregor Mendel","Isaac Newton","Charles Darwin","Louis Pasteur"], answer:2 },
+    { q: "What is 7 * 8?", options:["54","56","58","60"], answer:1 },
+    { q: "Which gas is lighter than air and used in balloons?", options:["Oxygen","Carbon Dioxide","Hydrogen","Helium"], answer:3 },
+    { q: "Which element has atomic number 6?", options:["Carbon","Oxygen","Nitrogen","Neon"], answer:0 },
+    { q: "Who painted 'The Starry Night'?", options:["Picasso","Van Gogh","Rembrandt","Monet"], answer:1 },
+    { q: "How many states are there in the United States?", options:["48","50","52","51"], answer:1 },
+    { q: "Which is the largest mammal?", options:["Elephant","Giraffe","Blue Whale","Hippopotamus"], answer:2 },
+    { q: "Which instrument measures temperature?", options:["Barometer","Thermometer","Hygrometer","Anemometer"], answer:1 },
+    { q: "What is the freezing point of water in °C?", options:["0","32","100","-10"], answer:0 }
+);
+
+// additional medium questions set 4
+questionsMedium.push(
+    { q: "Which ocean is the largest?", options:["Atlantic","Indian","Arctic","Pacific"], answer:3 },
+    { q: "What is 9 * 9?", options:["81","72","99","90"], answer:0 },
+    { q: "Which organ filters blood in the human body?", options:["Heart","Liver","Kidney","Lungs"], answer:2 },
+    { q: "Who painted the Sistine Chapel ceiling?", options:["Raphael","Leonardo da Vinci","Michelangelo","Donatello"], answer:2 },
+    { q: "What is the study of living organisms called?", options:["Geology","Biology","Chemistry","Physics"], answer:1 },
+    { q: "Which planet is closest to the Sun?", options:["Mercury","Venus","Earth","Mars"], answer:0 },
+    { q: "What is the capital city of Italy?", options:["Milan","Venice","Rome","Naples"], answer:2 },
+    { q: "Which metal is used to make electrical wires commonly?", options:["Gold","Copper","Aluminum","Iron"], answer:1 },
+    { q: "Which gas do humans exhale?", options:["Oxygen","Carbon Dioxide","Nitrogen","Helium"], answer:1 },
+    { q: "Which year did the Titanic sink?", options:["1905","1912","1920","1898"], answer:1 }
+);
+
+const questionsHard = [
+    { q: "Which planet rotates opposite to most planets?", options:["Venus","Mars","Jupiter","Mercury"], answer:0 },
+    { q: "Smallest continent by land area?", options:["Europe","Australia","Antarctica","South America"], answer:1 },
+    { q: "What is the derivative of sin(x)?", options:["cos(x)","-cos(x)","sin(x)","-sin(x)"], answer:0 },
+    { q: "What is the capital of New Zealand?", options:["Wellington","Auckland","Christchurch","Hamilton"], answer:0 },
+    { q: "Which scientist proposed the theory of general relativity?", options:["Isaac Newton","Albert Einstein","Niels Bohr","Galileo Galilei"], answer:1 },
+    { q: "In which year did Apollo 11 land on the Moon?", options:["1967","1968","1969","1970"], answer:2 },
+    { q: "What does DNA stand for?", options:["Deoxyribonucleic Acid","Deoxyribose Nucleic Acid","Dicarboxy Nucleic Acid","Deoxy Nucleic Acid"], answer:0 },
+    { q: "Euler's identity e^(iπ) + 1 equals?", options:["1","0","-1","i"], answer:1 },
+    { q: "Capital of Iceland?", options:["Oslo","Helsinki","Reykjavik","Copenhagen"], answer:2 },
+    { q: "Which field did Alan Turing contribute to?", options:["Biology","Computer Science","Chemistry","Sociology"], answer:1 }
+];
+
+// additional hard questions
+questionsHard.push(
+    { q: "What is Planck's constant (symbol)?", options:["h","c","G","k"], answer:0 },
+    { q: "Who wrote 'The Republic'?", options:["Aristotle","Plato","Socrates","Cicero"], answer:1 },
+    { q: "What is the integral of 1/x dx?", options:["ln|x| + C","1/x + C","x + C","e^x + C"], answer:0 },
+    { q: "Which theorem relates sides of right triangle?", options:["Pythagoras' theorem","Fermat's Last Theorem","Taylor's theorem","Bayes' theorem"], answer:0 },
+    { q: "What is the Heisenberg uncertainty principle about?", options:["Speed and position","Energy and time","Position and momentum","Mass and charge"], answer:2 },
+    { q: "Who developed the first programmable computer concept?", options:["Ada Lovelace","Alan Turing","Charles Babbage","John von Neumann"], answer:2 },
+    { q: "What is the sum of the interior angles of a triangle (degrees)?", options:["180","90","270","360"], answer:0 },
+    { q: "Which series converges to e?", options:["Sum 1/n","Sum 1/n!","Sum n!","Sum n^2"], answer:1 },
+    { q: "What is the currency of Japan?", options:["Yuan","Yen","Won","Ruble"], answer:1 },
+    { q: "Who is known for the uncertainty principle?", options:["Einstein","Heisenberg","Schrodinger","Dirac"], answer:1 }
+);
+
+// another 10 hard questions
+questionsHard.push(
+    { q: "What is the derivative of ln(x)?", options:["1/x","ln(x)","x","e^x"], answer:0 },
+    { q: "In the ideal gas law PV=nRT, what does R represent?", options:["Pressure","Universal gas constant","Volume","Temperature"], answer:1 },
+    { q: "Who wrote 'To Kill a Mockingbird'?", options:["Harper Lee","Mark Twain","Ernest Hemingway","F. Scott Fitzgerald"], answer:0 },
+    { q: "Avogadro's number is approximately?", options:["6.02e23","3.14","9.81","1.6e-19"], answer:0 },
+    { q: "Which scientist formulated the laws of motion?", options:["Galileo","Newton","Kepler","Faraday"], answer:1 },
+    { q: "What is the capital of Canada?", options:["Toronto","Vancouver","Ottawa","Montreal"], answer:2 },
+    { q: "Which organelle is called the powerhouse of the cell?", options:["Ribosome","Mitochondria","Nucleus","Golgi apparatus"], answer:1 },
+    { q: "What is decimal 10 in binary?", options:["1010","1001","1100","1110"], answer:0 },
+    { q: "Who is credited with inventing the telephone?", options:["Thomas Edison","Nikola Tesla","Alexander Graham Bell","Guglielmo Marconi"], answer:2 },
+    { q: "What is the cube root of 27?", options:["2","3","9","6"], answer:1 }
+);
+
+// additional hard questions set 4
+questionsHard.push(
+    { q: "What is the formula for the area of a circle?", options:["πr^2","2πr","πd","r^2"], answer:0 },
+    { q: "Who proposed the three laws of planetary motion?", options:["Kepler","Newton","Copernicus","Galileo"], answer:0 },
+    { q: "What is the binary representation of decimal 5?", options:["101","010","111","100"], answer:0 },
+    { q: "Which branch of mathematics studies rates of change?", options:["Algebra","Geometry","Calculus","Statistics"], answer:2 },
+    { q: "What is the SI unit of force?", options:["Newton","Pascal","Joule","Watt"], answer:0 },
+    { q: "Which scientist is known for the law of universal gravitation?", options:["Einstein","Newton","Bohr","Maxwell"], answer:1 },
+    { q: "Which particle has a negative charge?", options:["Proton","Neutron","Electron","Photon"], answer:2 },
+    { q: "What is the equilibrium constant symbol in chemistry?", options:["K","E","Q","R"], answer:0 },
+    { q: "Which theorem is fundamental to linear algebra for inner-product spaces?", options:["Pythagoras","Cauchy-Schwarz","Green's","Stokes'"], answer:1 },
+    { q: "Which programming language is known for 'write once, run anywhere'?", options:["C","Python","Java","Assembly"], answer:2 }
+);
+
+let questions = [];
+
+// Fisher–Yates shuffle to randomize arrays in-place
+function shuffleArray(arr){
+    for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+// generate a unique key and persist it so user must use it to start
+function generateKey(){
+    const emailInput = document.getElementById('email');
+    const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
+    if(!email){ alert('Please enter an email before generating a key.'); return; }
+    const emailRe = /\S+@\S+\.\S+/;
+    if(!emailRe.test(email)){ alert('Please enter a valid email before generating a key.'); return; }
+
+    // load mapping email -> key
+    let mapping = {};
+    try{ mapping = JSON.parse(localStorage.getItem('generatedQuizKeys') || '{}'); }catch(e){ mapping = {}; }
+
+    // if this email already has a key, show it instead of creating a new one
+    if(mapping[email]){
+        const existing = mapping[email];
+        const keyInput = document.getElementById('key'); if(keyInput) keyInput.value = existing;
+        const disp = document.getElementById('generatedKeyDisplay'); if(disp){ disp.innerText = 'Existing key for ' + email + ': ' + existing; disp.style.display = 'block'; }
+        return;
+    }
+
+    // create a key that's not already assigned
+    let key;
+    const values = new Set(Object.values(mapping));
+    do{ key = Math.random().toString(36).slice(2,10).toUpperCase(); }while(values.has(key));
+
+    mapping[email] = key;
+    try{ localStorage.setItem('generatedQuizKeys', JSON.stringify(mapping)); }catch(e){}
+
+    const keyInput = document.getElementById('key');
+    if(keyInput) keyInput.value = key;
+    const disp = document.getElementById('generatedKeyDisplay');
+    if(disp){ disp.innerText = 'Generated key for ' + email + ': ' + key; disp.style.display = 'block'; }
+}
+
+// how many questions to show per quiz
+const QUESTIONS_PER_QUIZ = 10;
+
+let index=0, score=0, time=120, timer;
+const correctAudio=document.getElementById('correctSound');
+const wrongAudio=document.getElementById('wrongSound');
+const FEEDBACK_DELAY = 900; // ms to show correct/wrong color before moving on
+let feedbackLocked = false;
+
+function startQuiz(){
+    let name = document.getElementById("username").value.trim();
+    let email = document.getElementById("email").value.trim();
+    let key  = document.getElementById("key").value.trim();
+    if(name === ""){ alert("Please enter your name"); return; }
+    if(email === ""){ alert("Please enter your email"); return; }
+    // basic email format check
+    const emailRe = /\S+@\S+\.\S+/;
+    if(!emailRe.test(email)){ alert("Please enter a valid email address"); return; }
+    if(key === ""){ alert("Please enter the key"); return; }
+
+    // require that the user use a system-generated key linked to their email
+    let mapping = {};
+    try{ mapping = JSON.parse(localStorage.getItem('generatedQuizKeys') || '{}'); }catch(e){ mapping = {}; }
+    const expected = mapping[email.toLowerCase()];
+    if(!expected || key !== expected){
+        alert("Invalid key. Please generate a key for this email and use it before starting the quiz.");
+        return;
+    }
+
+    // choose level and load corresponding questions
+    const levelSel = document.getElementById('level');
+    const level = levelSel ? levelSel.value : 'easy';
+
+    // build a stable pool with reproducible ids for tracking
+    let pool = [];
+    if(level === 'easy') pool = questionsEasy.slice();
+    else if(level === 'medium') pool = questionsMedium.slice();
+    else pool = questionsHard.slice();
+
+    pool = pool.map((q,i)=> ({...q, id: level + '-' + i}));
+
+    // load used question ids from localStorage (per-level)
+    let usedAll = {};
+    try{ usedAll = JSON.parse(localStorage.getItem('usedQuestions') || '{}'); }catch(e){ usedAll = {}; }
+    let usedForLevel = Array.isArray(usedAll[level]) ? usedAll[level] : [];
+
+    // filter out used questions
+    let remaining = pool.filter(q => !usedForLevel.includes(q.id));
+
+    // if not enough remaining, reset used list for this level (start over)
+    if(remaining.length < QUESTIONS_PER_QUIZ){
+        usedForLevel = [];
+        remaining = pool.slice();
+    }
+
+    // randomize and pick the required number
+    shuffleArray(remaining);
+    questions = remaining.slice(0, Math.min(QUESTIONS_PER_QUIZ, remaining.length));
+
+    // mark chosen questions as used and persist
+    usedForLevel = usedForLevel.concat(questions.map(q=>q.id));
+    usedAll[level] = usedForLevel;
+    try{ localStorage.setItem('usedQuestions', JSON.stringify(usedAll)); }catch(e){}
+
+    index = 0; score = 0; time = 120;
+    document.getElementById('time').innerText = time;
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("quiz").style.display="block";
+    loadQuestion();
+    timer=setInterval(updateTime,1000);
+}
+
+function loadQuestion(){
+    let q=questions[index];
+    document.getElementById("question").innerText="Q"+(index+1)+": "+q.q;
+    document.getElementById("label1").innerText=q.options[0];
+    document.getElementById("label2").innerText=q.options[1];
+    document.getElementById("label3").innerText=q.options[2];
+    document.getElementById("label4").innerText=q.options[3];
+    document.querySelectorAll(".option").forEach(div=>{
+        div.classList.remove("correct");
+        div.classList.remove("wrong");
+    });
+}
+
+function nextQuestion(){
+    if(feedbackLocked) return;
+    let options=document.getElementsByName("option");
+    let answered=false;
+    options.forEach((opt,i)=>{
+        if(opt.checked){
+            answered=true;
+            questions[index].userAnswer=i;
+            let optionDiv=opt.parentElement;
+            if(i===questions[index].answer){
+                score++;
+                optionDiv.classList.add("correct");
+                correctAudio.play();
+            } else {
+                optionDiv.classList.add("wrong");
+                wrongAudio.play();
+                document.querySelectorAll(".option")[questions[index].answer].classList.add("correct");
+            }
+        }
+    });
+    if(!answered){ alert("Please select an option!"); return; }
+
+    // lock feedback and disable Next button so user can see colors
+    feedbackLocked = true;
+    const nextBtn = document.getElementById('nextBtn');
+    if(nextBtn) nextBtn.disabled = true;
+
+    setTimeout(()=>{
+        // clear selections and advance
+        options.forEach((opt)=> opt.checked = false);
+        index++;
+        if(index<questions.length){ loadQuestion(); }
+        else{ endQuiz(); }
+        feedbackLocked = false;
+        if(nextBtn) nextBtn.disabled = false;
+    }, FEEDBACK_DELAY);
+}
+
+function updateTime(){
+    time--;
+    document.getElementById("time").innerText=time;
+    if(time<=0){ endQuiz(); }
+}
+
+function endQuiz(){
+    clearInterval(timer);
+    document.getElementById("quiz").style.display="none";
+    document.getElementById("result").style.display="block";
+
+    let resultHTML="Great Job, "+document.getElementById("username").value+"! 🎉<br>";
+    resultHTML += "<b>Email:</b> "+document.getElementById("email").value+"<br><br>";
+    resultHTML+="<b>Quiz Feedback:</b><br>";
+    questions.forEach((q,i)=>{
+        let userAnswer=q.userAnswer;
+        let correctAnswer=q.answer;
+        let status=(userAnswer===correctAnswer)?"✅ Correct":"❌ Wrong";
+        resultHTML+="Q"+(i+1)+": "+q.q+"<br>"+status+"<br><br>";
+    });
+    let correctCount=questions.filter(q=>q.userAnswer===q.answer).length;
+    let wrongCount=questions.length-correctCount;
+    let percent=Math.round((correctCount/questions.length)*100);
+    resultHTML+="<b>Total Questions:</b> "+questions.length+"<br>";
+    resultHTML+="<b>Correct Answers:</b> "+correctCount+"<br>";
+    resultHTML+="<b>Wrong Answers:</b> "+wrongCount+"<br>";
+    resultHTML+="<b>Score Percentage:</b> "+percent+"%";
+    document.getElementById("score").innerHTML=resultHTML;
+}
+</script>
+</body>
+</html>

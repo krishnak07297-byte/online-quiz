@@ -1,8 +1,8 @@
-<!DOCTYPE 
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Advanced Online Quiz</title>
+<title>Online Quiz</title>
 <style>
 *{box-sizing:border-box;}
 body{margin:0; min-height:100vh; font-family:'Segoe UI', sans-serif; background: linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center;}
@@ -13,12 +13,31 @@ input[type=text]{width:100%; padding:12px; border-radius:8px; border:1px solid #
 button{width:100%; padding:12px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-top:15px;}
 button:hover{opacity:0.9;}
 .option{background:#f4f6f8; padding:10px; border-radius:8px; margin:10px 0; cursor:pointer;}
-.option.correct{background-color:#a6f3a6;}
-.option.wrong{background-color:#f3a6a6;}
+.option.correct{background-color:#d4f7d4; border-left:6px solid #28a745; color:#0b3b10;}
+.option.wrong{background-color:#f8d7da; border-left:6px solid #dc3545; color:#4a0b0b;}
+.option{transition:background-color 180ms ease, border-left-color 180ms ease;}
 .option:hover{background-color:#e0e7ff;}
 .timer{text-align:right; font-weight:bold; color:#e63946;}
 #quiz,#result{display:none;}
 #result p{font-size:16px; text-align:left;}
+
+/* Added: Publish modal styles */
+#publishModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+}
+#publishModal > div {
+    background: #fff;
+    padding: 16px;
+    width: 90%;
+    max-width: 480px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
 </style>
 </head>
 <body>
@@ -31,7 +50,19 @@ button:hover{opacity:0.9;}
     <h2>Advanced Online Quiz</h2>
     <input type="text" id="username" placeholder="Enter your name">
     <br><br>
+    <label for="level">Select level:</label>
+    <select id="level">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+    </select>
+    <br><br>
     <button onclick="startQuiz()">Start Quiz</button>
+
+    <!-- Added: Generate publish link -->
+    <div style="margin-top:12px; text-align:center;">
+        <button onclick="openPublish()" style="width:auto; padding:8px 12px; background:#444; color:#fff; border-radius:6px; border:none; cursor:pointer;">Generate Project Link</button>
+    </div>
 </div>
 
 <!-- Quiz -->
@@ -55,7 +86,7 @@ button:hover{opacity:0.9;}
         <label id="label4"></label>
     </div>
     <br>
-    <button onclick="nextQuestion()">Next</button>
+    <button id="nextBtn" onclick="nextQuestion()">Next</button>
 </div>
 
 <!-- Result -->
@@ -64,27 +95,94 @@ button:hover{opacity:0.9;}
     <p id="score"></p>
 </div>
 
+<!-- Added: Publish modal -->
+<div id="publishModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:16px; width:90%; max-width:480px; border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0;">Generate Project Link</h3>
+        <p style="font-size:13px; margin:6px 0 12px 0;">Enter your GitHub info to generate a publishable URL.</p>
+        <label style="font-size:13px;">GitHub username</label>
+        <input id="ghUser" type="text" placeholder="username" style="width:100%; padding:8px; margin:6px 0 10px 0;"/>
+        <label style="font-size:13px;">Repository name</label>
+        <input id="ghRepo" type="text" placeholder="repo-name" style="width:100%; padding:8px; margin:6px 0 10px 0;"/>
+        <label style="font-size:13px;">Branch (default: main)</label>
+        <input id="ghBranch" type="text" placeholder="main" style="width:100%; padding:8px; margin:6px 0 12px 0;"/>
+
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button onclick="generateLink('pages')" style="flex:1; padding:8px; border-radius:6px; border:none; background:#667eea; color:#fff; cursor:pointer;">GitHub Pages URL</button>
+            <button onclick="generateLink('raw')" style="flex:1; padding:8px; border-radius:6px; border:none; background:#764ba2; color:#fff; cursor:pointer;">Raw (githack)</button>
+        </div>
+
+        <input id="generatedLink" type="text" readonly style="width:100%; padding:8px; margin-bottom:10px;"/>
+        <div style="display:flex; gap:8px;">
+            <button onclick="copyLink()" style="flex:1; padding:8px; border-radius:6px; border:none; background:#28a745; color:#fff; cursor:pointer;">Copy Link</button>
+            <button onclick="closePublish()" style="flex:1; padding:8px; border-radius:6px; border:none; background:#dc3545; color:#fff; cursor:pointer;">Close</button>
+        </div>
+        <p style="font-size:12px; color:#666; margin-top:10px;">Notes: For GitHub Pages make sure repository settings have Pages enabled or use the special username.github.io repo. For raw preview use the correct branch and raw.githack service.</p>
+    </div>
+</div>
+
 <script>
-let questions = [
+const questionsEasy = [
+    { q: "Fastest land animal?", options:["Cheetah","Lion","Tiger","Leopard"], answer:0 },
+    { q: "Currency of South Korea?", options:["Won","Yen","Dollar","Peso"], answer:0 },
+    { q: "Light year is a measure of?", options:["Time","Distance","Speed","Energy"], answer:1 },
+    { q: "Who painted the Mona Lisa?", options:["Van Gogh","Da Vinci","Picasso","Michelangelo"], answer:1 },
+    { q: "Which gas is most abundant in Earth's atmosphere?", options:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], answer:1 },
+    { q: "What color do you get by mixing red and blue?", options:["Green","Purple","Orange","Brown"], answer:1 },
+    { q: "How many continents are there on Earth?", options:["5","6","7","8"], answer:2 },
+    { q: "What is H2O commonly known as?", options:["Salt","Water","Hydrogen","Oxygen"], answer:1 },
+    { q: "Largest ocean on Earth?", options:["Atlantic","Indian","Arctic","Pacific"], answer:3 },
+    { q: "What is 2 + 2?", options:["3","4","5","6"], answer:1 }
+];
+
+const questionsMedium = [
     { q: "Smallest prime number greater than 50?", options:["51","53","57","59"], answer:1 },
     { q: "Who wrote the novel '1984'?", options:["Aldous Huxley","George Orwell","J.K. Rowling","Mark Twain"], answer:1 },
     { q: "Which element has the highest melting point?", options:["Iron","Tungsten","Gold","Platinum"], answer:1 },
-    { q: "Which planet rotates opposite to most planets?", options:["Venus","Mars","Jupiter","Mercury"], answer:0 },
-    { q: "Fastest land animal?", options:["Cheetah","Lion","Tiger","Leopard"], answer:0 },
-    { q: "Light year is a measure of?", options:["Time","Distance","Speed","Energy"], answer:1 },
-    { q: "Currency of South Korea?", options:["Won","Yen","Dollar","Peso"], answer:0 },
-    { q: "Who painted the Mona Lisa?", options:["Van Gogh","Da Vinci","Picasso","Michelangelo"], answer:1 },
-    { q: "Which gas is most abundant in Earth's atmosphere?", options:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], answer:1 },
-    { q: "Smallest continent by land area?", options:["Europe","Australia","Antarctica","South America"], answer:1 }
+    { q: "Capital of France?", options:["Berlin","Madrid","Paris","Rome"], answer:2 },
+    { q: "Chemical symbol for Gold?", options:["Gd","Ag","Au","Pt"], answer:2 },
+    { q: "Largest planet in our solar system?", options:["Earth","Saturn","Jupiter","Mars"], answer:2 },
+    { q: "Which language is primarily spoken in Brazil?", options:["Spanish","Portuguese","English","French"], answer:1 },
+    { q: "In which year did World War II end?", options:["1942","1945","1948","1950"], answer:1 },
+    { q: "Boiling point of water at sea level (°C)?", options:["90","95","100","105"], answer:2 },
+    { q: "Which organ pumps blood around the body?", options:["Liver","Lungs","Kidney","Heart"], answer:3 }
 ];
+
+const questionsHard = [
+    { q: "Which planet rotates opposite to most planets?", options:["Venus","Mars","Jupiter","Mercury"], answer:0 },
+    { q: "Smallest continent by land area?", options:["Europe","Australia","Antarctica","South America"], answer:1 },
+    { q: "What is the derivative of sin(x)?", options:["cos(x)","-cos(x)","sin(x)","-sin(x)"], answer:0 },
+    { q: "What is the capital of New Zealand?", options:["Wellington","Auckland","Christchurch","Hamilton"], answer:0 },
+    { q: "Which scientist proposed the theory of general relativity?", options:["Isaac Newton","Albert Einstein","Niels Bohr","Galileo Galilei"], answer:1 },
+    { q: "In which year did Apollo 11 land on the Moon?", options:["1967","1968","1969","1970"], answer:2 },
+    { q: "What does DNA stand for?", options:["Deoxyribonucleic Acid","Deoxyribose Nucleic Acid","Dicarboxy Nucleic Acid","Deoxy Nucleic Acid"], answer:0 },
+    { q: "Euler's identity e^(iπ) + 1 equals?", options:["1","0","-1","i"], answer:1 },
+    { q: "Capital of Iceland?", options:["Oslo","Helsinki","Reykjavik","Copenhagen"], answer:2 },
+    { q: "Which field did Alan Turing contribute to?", options:["Biology","Computer Science","Chemistry","Sociology"], answer:1 }
+];
+
+let questions = [];
 
 let index=0, score=0, time=120, timer;
 const correctAudio=document.getElementById('correctSound');
 const wrongAudio=document.getElementById('wrongSound');
+const FEEDBACK_DELAY = 900; // ms to show correct/wrong color before moving on
+let feedbackLocked = false;
 
 function startQuiz(){
     let name=document.getElementById("username").value;
     if(name===""){ alert("Please enter your name"); return; }
+
+    // choose level and load corresponding questions
+    const levelSel = document.getElementById('level');
+    const level = levelSel ? levelSel.value : 'easy';
+    if(level === 'easy') questions = questionsEasy.slice();
+    else if(level === 'medium') questions = questionsMedium.slice();
+    else questions = questionsHard.slice();
+
+    index = 0; score = 0; time = 120;
+    document.getElementById('time').innerText = time;
+
     document.getElementById("login").style.display="none";
     document.getElementById("quiz").style.display="block";
     loadQuestion();
@@ -105,6 +203,7 @@ function loadQuestion(){
 }
 
 function nextQuestion(){
+    if(feedbackLocked) return;
     let options=document.getElementsByName("option");
     let answered=false;
     options.forEach((opt,i)=>{
@@ -122,12 +221,23 @@ function nextQuestion(){
                 document.querySelectorAll(".option")[questions[index].answer].classList.add("correct");
             }
         }
-        opt.checked=false;
     });
     if(!answered){ alert("Please select an option!"); return; }
-    index++;
-    if(index<questions.length){ loadQuestion(); }
-    else{ endQuiz(); }
+
+    // lock feedback and disable Next button so user can see colors
+    feedbackLocked = true;
+    const nextBtn = document.getElementById('nextBtn');
+    if(nextBtn) nextBtn.disabled = true;
+
+    setTimeout(()=>{
+        // clear selections and advance
+        options.forEach((opt)=> opt.checked = false);
+        index++;
+        if(index<questions.length){ loadQuestion(); }
+        else{ endQuiz(); }
+        feedbackLocked = false;
+        if(nextBtn) nextBtn.disabled = false;
+    }, FEEDBACK_DELAY);
 }
 
 function updateTime(){
@@ -158,7 +268,43 @@ function endQuiz(){
     resultHTML+="<b>Score Percentage:</b> "+percent+"%";
     document.getElementById("score").innerHTML=resultHTML;
 }
-// audio playback handled via `correctAudio` and `wrongAudio`
+
+/* Added: publish modal helpers */
+function openPublish(){
+    document.getElementById('publishModal').style.display='flex';
+    // Prefill GitHub username provided by user
+    document.getElementById('ghUser').value = 'krishnak07297-byte';
+    document.getElementById('ghRepo').value = '';
+    document.getElementById('ghBranch').value = 'main';
+    document.getElementById('generatedLink').value = '';
+}
+function closePublish(){
+    document.getElementById('publishModal').style.display='none';
+}
+function generateLink(kind){
+    const user = document.getElementById('ghUser').value.trim();
+    const repo = document.getElementById('ghRepo').value.trim();
+    const branch = (document.getElementById('ghBranch').value.trim() || 'main');
+    if(!user || !repo){ alert('Enter GitHub username and repository name'); return; }
+    let url='';
+    if(kind==='pages'){
+        // GitHub Pages standard URL
+        url = `https://${user}.github.io/${repo}/`;
+    } else {
+        // Raw HTML preview via githack (serves index.html from branch)
+        url = `https://raw.githack.com/${user}/${repo}/${branch}/index.html`;
+    }
+    document.getElementById('generatedLink').value = url;
+}
+function copyLink(){
+    const el = document.getElementById('generatedLink');
+    if(!el.value){ alert('Generate a link first'); return; }
+    navigator.clipboard.writeText(el.value).then(()=> {
+        alert('Link copied to clipboard');
+    }, ()=> {
+        alert('Copy failed — select and copy manually.');
+    });
+}
 </script>
 </body>
 </html>
