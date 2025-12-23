@@ -432,4 +432,229 @@ function endQuiz(){
 }
 </script>
 </body>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Online Quiz</title>
+<style>
+*{box-sizing:border-box;}
+body{margin:0; min-height:100vh; font-family:'Segoe UI', sans-serif; background: linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center;}
+.container{background:#ffffff; width:90%; max-width:500px; padding:25px; border-radius:15px; box-shadow:0 15px 30px rgba(0,0,0,0.25); animation: fadeIn 0.8s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);}}
+h2,h3{text-align:center; color:#333;}
+input[type=text]{width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; font-size:16px;}
+button{width:100%; padding:12px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-top:15px;}
+button:hover{opacity:0.9;}
+.option{background:#f4f6f8; padding:10px; border-radius:8px; margin:10px 0; cursor:pointer;}
+.option.correct{background-color:#d4f7d4; border-left:6px solid #28a745; color:#0b3b10;}
+.option.wrong{background-color:#f8d7da; border-left:6px solid #dc3545; color:#4a0b0b;}
+.option{transition:background-color 180ms ease, border-left-color 180ms ease;}
+.option:hover{background-color:#e0e7ff;}
+.timer{text-align:right; font-weight:bold; color:#e63946;}
+#quiz,#result{display:none;}
+#result p{font-size:16px; text-align:left;}
+</style>
+</head>
+<body>
+
+<audio id="correctSound" src="right.mp3.mpeg" preload="auto" type="audio/mpeg"></audio>
+<audio id="wrongSound" src="wrong.mp3.mpeg" preload="auto" type="audio/mpeg"></audio>
+
+<!-- Login -->
+<div class="container" id="login">
+    <h2>Advanced Online Quiz</h2>
+    <input type="text" id="username" placeholder="Enter your name">
+    <br><br>
+    <label for="level">Select level:</label>
+    <select id="level">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+    </select>
+    <br><br>
+    <button onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<!-- Quiz -->
+<div class="container" id="quiz">
+    <div class="timer">Time: <span id="time">120</span>s</div>
+    <h3 id="question"></h3>
+    <div class="option">
+        <input type="radio" name="option" id="opt1">
+        <label id="label1"></label>
+    </div>
+    <div class="option">
+        <input type="radio" name="option" id="opt2">
+        <label id="label2"></label>
+    </div>
+    <div class="option">
+        <input type="radio" name="option" id="opt3">
+        <label id="label3"></label>
+    </div>
+    <div class="option">
+        <input type="radio" name="option" id="opt4">
+        <label id="label4"></label>
+    </div>
+    <br>
+    <button id="nextBtn" onclick="nextQuestion()">Next</button>
+</div>
+
+<!-- Result -->
+<div class="container" id="result">
+    <h2>Quiz Result</h2>
+    <p id="score"></p>
+</div>
+
+<script>
+const questionsEasy = [
+    { q: "Fastest land animal?", options:["Cheetah","Lion","Tiger","Leopard"], answer:0 },
+    { q: "Currency of South Korea?", options:["Won","Yen","Dollar","Peso"], answer:0 },
+    { q: "Light year is a measure of?", options:["Time","Distance","Speed","Energy"], answer:1 },
+    { q: "Who painted the Mona Lisa?", options:["Van Gogh","Da Vinci","Picasso","Michelangelo"], answer:1 },
+    { q: "Which gas is most abundant in Earth's atmosphere?", options:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], answer:1 },
+    { q: "What color do you get by mixing red and blue?", options:["Green","Purple","Orange","Brown"], answer:1 },
+    { q: "How many continents are there on Earth?", options:["5","6","7","8"], answer:2 },
+    { q: "What is H2O commonly known as?", options:["Salt","Water","Hydrogen","Oxygen"], answer:1 },
+    { q: "Largest ocean on Earth?", options:["Atlantic","Indian","Arctic","Pacific"], answer:3 },
+    { q: "What is 2 + 2?", options:["3","4","5","6"], answer:1 }
+];
+
+const questionsMedium = [
+    { q: "Smallest prime number greater than 50?", options:["51","53","57","59"], answer:1 },
+    { q: "Who wrote the novel '1984'?", options:["Aldous Huxley","George Orwell","J.K. Rowling","Mark Twain"], answer:1 },
+    { q: "Which element has the highest melting point?", options:["Iron","Tungsten","Gold","Platinum"], answer:1 },
+    { q: "Capital of France?", options:["Berlin","Madrid","Paris","Rome"], answer:2 },
+    { q: "Chemical symbol for Gold?", options:["Gd","Ag","Au","Pt"], answer:2 },
+    { q: "Largest planet in our solar system?", options:["Earth","Saturn","Jupiter","Mars"], answer:2 },
+    { q: "Which language is primarily spoken in Brazil?", options:["Spanish","Portuguese","English","French"], answer:1 },
+    { q: "In which year did World War II end?", options:["1942","1945","1948","1950"], answer:1 },
+    { q: "Boiling point of water at sea level (°C)?", options:["90","95","100","105"], answer:2 },
+    { q: "Which organ pumps blood around the body?", options:["Liver","Lungs","Kidney","Heart"], answer:3 }
+];
+
+const questionsHard = [
+    { q: "Which planet rotates opposite to most planets?", options:["Venus","Mars","Jupiter","Mercury"], answer:0 },
+    { q: "Smallest continent by land area?", options:["Europe","Australia","Antarctica","South America"], answer:1 },
+    { q: "What is the derivative of sin(x)?", options:["cos(x)","-cos(x)","sin(x)","-sin(x)"], answer:0 },
+    { q: "What is the capital of New Zealand?", options:["Wellington","Auckland","Christchurch","Hamilton"], answer:0 },
+    { q: "Which scientist proposed the theory of general relativity?", options:["Isaac Newton","Albert Einstein","Niels Bohr","Galileo Galilei"], answer:1 },
+    { q: "In which year did Apollo 11 land on the Moon?", options:["1967","1968","1969","1970"], answer:2 },
+    { q: "What does DNA stand for?", options:["Deoxyribonucleic Acid","Deoxyribose Nucleic Acid","Dicarboxy Nucleic Acid","Deoxy Nucleic Acid"], answer:0 },
+    { q: "Euler's identity e^(iπ) + 1 equals?", options:["1","0","-1","i"], answer:1 },
+    { q: "Capital of Iceland?", options:["Oslo","Helsinki","Reykjavik","Copenhagen"], answer:2 },
+    { q: "Which field did Alan Turing contribute to?", options:["Biology","Computer Science","Chemistry","Sociology"], answer:1 }
+];
+
+let questions = [];
+
+let index=0, score=0, time=120, timer;
+const correctAudio=document.getElementById('correctSound');
+const wrongAudio=document.getElementById('wrongSound');
+const FEEDBACK_DELAY = 900; // ms to show correct/wrong color before moving on
+let feedbackLocked = false;
+
+function startQuiz(){
+    let name=document.getElementById("username").value;
+    if(name===""){ alert("Please enter your name"); return; }
+
+    // choose level and load corresponding questions
+    const levelSel = document.getElementById('level');
+    const level = levelSel ? levelSel.value : 'easy';
+    if(level === 'easy') questions = questionsEasy.slice();
+    else if(level === 'medium') questions = questionsMedium.slice();
+    else questions = questionsHard.slice();
+
+    index = 0; score = 0; time = 120;
+    document.getElementById('time').innerText = time;
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("quiz").style.display="block";
+    loadQuestion();
+    timer=setInterval(updateTime,1000);
+}
+
+function loadQuestion(){
+    let q=questions[index];
+    document.getElementById("question").innerText="Q"+(index+1)+": "+q.q;
+    document.getElementById("label1").innerText=q.options[0];
+    document.getElementById("label2").innerText=q.options[1];
+    document.getElementById("label3").innerText=q.options[2];
+    document.getElementById("label4").innerText=q.options[3];
+    document.querySelectorAll(".option").forEach(div=>{
+        div.classList.remove("correct");
+        div.classList.remove("wrong");
+    });
+}
+
+function nextQuestion(){
+    if(feedbackLocked) return;
+    let options=document.getElementsByName("option");
+    let answered=false;
+    options.forEach((opt,i)=>{
+        if(opt.checked){
+            answered=true;
+            questions[index].userAnswer=i;
+            let optionDiv=opt.parentElement;
+            if(i===questions[index].answer){
+                score++;
+                optionDiv.classList.add("correct");
+                correctAudio.play();
+            } else {
+                optionDiv.classList.add("wrong");
+                wrongAudio.play();
+                document.querySelectorAll(".option")[questions[index].answer].classList.add("correct");
+            }
+        }
+    });
+    if(!answered){ alert("Please select an option!"); return; }
+
+    // lock feedback and disable Next button so user can see colors
+    feedbackLocked = true;
+    const nextBtn = document.getElementById('nextBtn');
+    if(nextBtn) nextBtn.disabled = true;
+
+    setTimeout(()=>{
+        // clear selections and advance
+        options.forEach((opt)=> opt.checked = false);
+        index++;
+        if(index<questions.length){ loadQuestion(); }
+        else{ endQuiz(); }
+        feedbackLocked = false;
+        if(nextBtn) nextBtn.disabled = false;
+    }, FEEDBACK_DELAY);
+}
+
+function updateTime(){
+    time--;
+    document.getElementById("time").innerText=time;
+    if(time<=0){ endQuiz(); }
+}
+
+function endQuiz(){
+    clearInterval(timer);
+    document.getElementById("quiz").style.display="none";
+    document.getElementById("result").style.display="block";
+
+    let resultHTML="Great Job, "+document.getElementById("username").value+"! 🎉<br><br>";
+    resultHTML+="<b>Quiz Feedback:</b><br>";
+    questions.forEach((q,i)=>{
+        let userAnswer=q.userAnswer;
+        let correctAnswer=q.answer;
+        let status=(userAnswer===correctAnswer)?"✅ Correct":"❌ Wrong";
+        resultHTML+="Q"+(i+1)+": "+q.q+"<br>"+status+"<br><br>";
+    });
+    let correctCount=questions.filter(q=>q.userAnswer===q.answer).length;
+    let wrongCount=questions.length-correctCount;
+    let percent=Math.round((correctCount/questions.length)*100);
+    resultHTML+="<b>Total Questions:</b> "+questions.length+"<br>";
+    resultHTML+="<b>Correct Answers:</b> "+correctCount+"<br>";
+    resultHTML+="<b>Wrong Answers:</b> "+wrongCount+"<br>";
+    resultHTML+="<b>Score Percentage:</b> "+percent+"%";
+    document.getElementById("score").innerHTML=resultHTML;
+}
+</script>
+</body>
+>>>>>>> 9dd71ce20a93f755ee6f9c4b4f10db5f6cece97a
 </html>
